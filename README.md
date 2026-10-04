@@ -11,7 +11,7 @@ Windows-App für die Tageslisten aus Conqueror X. Die XML-Exporte werden direkt 
 
 Erst nach erfolgreicher PDF-Erstellung wird die XML in den Unterordner `Archiv` des Exportordners verschoben. Defekte Dateien bleiben liegen; die übrigen Dateien werden weiterverarbeitet. Falls die Archivierung scheitert, bleibt die XML ebenfalls liegen und die App zeigt einen Hinweis. Vor einem erneuten Start diese Datei prüfen, sonst kann ein zusätzliches PDF entstehen.
 
-Die bisherigen Buchungsfilter, Notizen und das PDF-Layout bleiben erhalten. Auch ein Tag ohne relevante Buchungen erhält eine Liste mit Zusammenfassung. Eine XML mit mehreren Reservierungstagen oder ohne erkennbares Reservierungsdatum wird mit Hinweis zurückgewiesen.
+Reservierungen mit einer Kuchenbestellung erscheinen auch ohne Tischreservierung vorher/nachher auf der Liste, insbesondere KGB. Die Kuchenart wird in der Notiz ausgegeben. Die übrigen Buchungsfilter, Notizen und das PDF-Layout bleiben erhalten. Auch ein Tag ohne relevante Buchungen erhält eine Liste mit Zusammenfassung. Eine XML mit mehreren Reservierungstagen oder ohne erkennbares Reservierungsdatum wird mit Hinweis zurückgewiesen.
 
 ## Windows-App bauen
 

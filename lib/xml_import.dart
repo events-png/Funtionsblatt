@@ -104,8 +104,11 @@ FunctionSheet parseFunctionSheet(String xml) {
       if (cake != null) notes.add('Kuchen (${cake.group(2)})');
     }
     final hasTable = notes.contains('vorher') || notes.contains('nachher');
-    // Preserve the existing converter's Family/Party filters.
-    if ((lower.contains('family') || lower.contains('party')) && !hasTable)
+    final hasCake = notes.any((note) => note.startsWith('Kuchen ('));
+    // Cake orders also need a kitchen/service sheet without a table booking.
+    if ((lower.contains('family') || lower.contains('party')) &&
+        !hasTable &&
+        !hasCake)
       continue;
     final sortedNotes = notes.toList()..sort();
     bookings.add({

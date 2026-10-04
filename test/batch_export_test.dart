@@ -20,6 +20,38 @@ String xml(
 <TotalPeopleEating>12 Tischreservierung nachher</TotalPeopleEating></TempData>''';
 
 void main() {
+  for (final flavor in ['weiß', 'schoko']) {
+    for (final product in ['Kuchen', 'Geburtstagskuchen']) {
+      test('$product ($flavor) appears without a table reservation', () {
+        for (final type in [
+          'Kids Birthday Party',
+          'Kids Premium',
+          'Family Bowl',
+          'Party',
+        ]) {
+          final input = xml(
+            '20261004',
+            'Kuchen ohne Tisch',
+            type: type,
+          ).replaceAll('Tischreservierung nachher', '$product ($flavor)');
+          final sheet = parseFunctionSheet(input);
+          expect(sheet.bookings.single['Name'], 'Kuchen ohne Tisch');
+          expect(sheet.bookings.single['Notiz'], 'Kuchen ($flavor)');
+        }
+      });
+    }
+  }
+
+  test('a cake on another reservation does not bypass the table filter', () {
+    final input = xml('20261004', 'Ohne Kuchen', type: 'Kids Birthday Party')
+        .replaceAll('Tischreservierung nachher', 'Keine Tischbuchung')
+        .replaceFirst(
+          '</TempData>',
+          '<TransactionsRows><RsvId>2</RsvId><PriceKeyDescr>Kuchen (weiß)</PriceKeyDescr></TransactionsRows></TempData>',
+        );
+    expect(parseFunctionSheet(input).bookings, isEmpty);
+  });
+
   test('normalizes Windows line endings like the original converter', () {
     final sheet = parseFunctionSheet(
       xml('20261004', 'Test', note: 'Zeile 1\r\nZeile 2'),
