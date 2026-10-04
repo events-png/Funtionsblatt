@@ -20,6 +20,12 @@ String xml(
 <TotalPeopleEating>12 Tischreservierung nachher</TotalPeopleEating></TempData>''';
 
 void main() {
+  test('normalizes Windows line endings like the original converter', () {
+    final sheet = parseFunctionSheet(
+      xml('20261004', 'Test', note: 'Zeile 1\r\nZeile 2'),
+    );
+    expect(sheet.bookings.single['Notiz'], 'Zeile 1\nZeile 2, nachher');
+  });
   test(
     'keeps days, bookings and summaries separate and archives only successes',
     () async {

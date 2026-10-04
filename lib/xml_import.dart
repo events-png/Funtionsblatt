@@ -31,7 +31,10 @@ String _time(String raw) =>
     raw.length >= 12 ? '${raw.substring(8, 10)}:${raw.substring(10, 12)}' : '';
 
 FunctionSheet parseFunctionSheet(String xml) {
-  final root = XmlDocument.parse(xml).rootElement;
+  // ElementTree normalizes Windows line endings; preserve that behavior.
+  final root = XmlDocument.parse(
+    xml.replaceAll('\r\n', '\n').replaceAll('\r', '\n'),
+  ).rootElement;
   if (root.name.local != 'TempData') {
     throw const FormatException(
       'Keine Conqueror-Funktionsblatt-XML (TempData).',
