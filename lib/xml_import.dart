@@ -30,6 +30,16 @@ String _text(XmlElement element, String name) {
 String _time(String raw) =>
     raw.length >= 12 ? '${raw.substring(8, 10)}:${raw.substring(10, 12)}' : '';
 
+int _people(String raw) {
+  final value = double.tryParse(raw.trim().replaceAll(',', '.'));
+  if (value == null ||
+      !value.isFinite ||
+      value <= 0 ||
+      value != value.roundToDouble())
+    return 0;
+  return value.toInt();
+}
+
 FunctionSheet parseFunctionSheet(String xml) {
   // ElementTree normalizes Windows line endings; preserve that behavior.
   final root = XmlDocument.parse(
@@ -86,13 +96,21 @@ FunctionSheet parseFunctionSheet(String xml) {
       'Note',
     ).replaceAll(RegExp('family bowl', caseSensitive: false), 'Family');
     if (note.isNotEmpty) notes.add(note);
+    var beforeQuantity = 0;
+    var afterQuantity = 0;
     for (final transaction in transactions.where(
       (t) => _text(t, 'RsvId') == _text(report, 'RsvId'),
     )) {
       final text = _text(transaction, 'PriceKeyDescr');
       final lowerText = text.toLowerCase();
-      if (lowerText.contains('tischreservierung vorher')) notes.add('vorher');
-      if (lowerText.contains('tischreservierung nachher')) notes.add('nachher');
+      if (lowerText.contains('tischreservierung vorher')) {
+        notes.add('vorher');
+        beforeQuantity += _people(_text(transaction, 'QuantitySold'));
+      }
+      if (lowerText.contains('tischreservierung nachher')) {
+        notes.add('nachher');
+        afterQuantity += _people(_text(transaction, 'QuantitySold'));
+      }
       if (lowerText.contains('fairy tale')) notes.add('Fairy Tale');
       if (lowerText.contains('monster')) notes.add('Monster');
       if (lowerText.contains('ocean') || lowerText.contains('ozean'))
@@ -103,6 +121,23 @@ FunctionSheet parseFunctionSheet(String xml) {
       ).firstMatch(text);
       if (cake != null) notes.add('Kuchen (${cake.group(2)})');
     }
+    // MenuChoices repeats the transaction quantities; do not add both sources.
+    var menuBefore = 0;
+    var menuAfter = 0;
+    for (final match in RegExp(
+      r'(\d+(?:[.,]\d+)?)\s+Tischreservierung\s+(vorher|nachher)\b',
+      caseSensitive: false,
+    ).allMatches(_text(report, 'MenuChoices'))) {
+      final direction = match.group(2)!.toLowerCase();
+      notes.add(direction);
+      if (direction == 'vorher') {
+        menuBefore += _people(match.group(1)!);
+      } else {
+        menuAfter += _people(match.group(1)!);
+      }
+    }
+    if (menuBefore > beforeQuantity) beforeQuantity = menuBefore;
+    if (menuAfter > afterQuantity) afterQuantity = menuAfter;
     final hasTable = notes.contains('vorher') || notes.contains('nachher');
     final hasCake = notes.any((note) => note.startsWith('Kuchen ('));
     // Cake orders also need a kitchen/service sheet without a table booking.
@@ -110,6 +145,18 @@ FunctionSheet parseFunctionSheet(String xml) {
         !hasTable &&
         !hasCake)
       continue;
+    final eating = _people(_text(report, 'NumberPeopleEating'));
+    final bowling = _people(_text(report, 'NumberPeopleBowling'));
+    // A before AND after table booking is still the same group of people.
+    final tableQuantity = beforeQuantity > afterQuantity
+        ? beforeQuantity
+        : afterQuantity;
+    final pax = eating > 0
+        ? eating
+        : tableQuantity > 1
+        ? tableQuantity
+        : bowling;
+    if (pax == 0) notes.add('Personenzahl offen');
     final sortedNotes = notes.toList()..sort();
     bookings.add({
       'ID': _text(report, 'ReservationKey'),
@@ -124,7 +171,9 @@ FunctionSheet parseFunctionSheet(String xml) {
       'Bowlinguhrzeit': _time(_text(report, 'BowlingTime')),
       'Bowler': _text(report, 'NumberPeopleBowling'),
       'Resto': _time(_text(report, 'EatingTime')),
-      'Pax': _text(report, 'NumberPeopleEating'),
+      'Pax': pax > 0 ? pax.toString() : 'offen',
+      'TableBefore': notes.contains('vorher'),
+      'TableAfter': notes.contains('nachher'),
       'Notiz': sortedNotes.join(', '),
     });
   }
@@ -150,5 +199,32 @@ FunctionSheet parseFunctionSheet(String xml) {
     final text = element.innerText.trim();
     if (text.length > summary.length) summary = text;
   }
-  return FunctionSheet(bookings, summary, date);
+  // Conqueror's table totals count article units, not the resolved guest counts.
+  final summaryLines = summary
+      .split('\n')
+      .where(
+        (line) =>
+            line.trim().isNotEmpty &&
+            !RegExp(
+              r'tischreservierung\s+(vorher|nachher)',
+              caseSensitive: false,
+            ).hasMatch(line),
+      )
+      .toList();
+  for (final direction in ['vorher', 'nachher']) {
+    final key = direction == 'vorher' ? 'TableBefore' : 'TableAfter';
+    final tables = bookings.where((booking) => booking[key] == true).toList();
+    if (tables.isEmpty) continue;
+    final total = tables.fold<int>(
+      0,
+      (sum, booking) => sum + _people(booking['Pax'] as String),
+    );
+    final unknown = tables.where((booking) => booking['Pax'] == 'offen').length;
+    final countLabel = tables.length == 1 ? 'Reservierung' : 'Reservierungen';
+    final openLabel = unknown > 0 ? ' ($unknown Personenzahl offen)' : '';
+    summaryLines.add(
+      'Tischreservierung $direction: ${unknown > 0 ? 'mindestens ' : ''}$total Personen / ${tables.length} $countLabel$openLabel',
+    );
+  }
+  return FunctionSheet(bookings, summaryLines.join('\n'), date);
 }

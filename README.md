@@ -25,3 +25,7 @@ flutter build windows --release
 ```
 
 Die komplette Ausgabe in `build\windows\x64\runner\Release` verwenden, nicht nur die EXE. Die alte App erst ersetzen, nachdem die neue Version mit Beispiel-XMLs geprüft wurde. Der GitHub-Workflow „Windows App“ führt Tests und Build aus und stellt den Ausgabeordner als ZIP-Artefakt `Funktionsblatt-Windows` bereit.
+
+## Personenzahlen
+
+Pax und Tisch-Zusammenfassung verwenden dieselbe Reihenfolge: `NumberPeopleEating` größer 0, sonst Tischreservierungsmenge größer 1, sonst `NumberPeopleBowling` größer 0. Ohne diese Angaben steht „offen“ in Pax und „Personenzahl offen“ in der Notiz. Die Tischmengen werden aus den zugehörigen Transaktionen und `MenuChoices` gelesen, ohne dieselbe Menge doppelt zu zählen. Vorher und nachher werden getrennt zusammengefasst; Kuchenbestellungen ohne Tischbuchung zählen nicht in die Tischsummen. Unvollständige Summen werden als „mindestens“ mit Anzahl offener Personenzahlen markiert. Andere Zusammenfassungsangaben (z. B. Kuchen) aus dem Export bleiben erhalten.

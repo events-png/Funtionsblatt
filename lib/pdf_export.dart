@@ -75,10 +75,10 @@ Future<Uint8List> createSheetPdf(
     }
 
     String bVal = (booking['Bowler'] ?? '0').toString();
-    String pVal = (booking['Pax'] ?? '0').toString();
+    String pVal = (booking['Pax'] ?? 'offen').toString();
 
     String displayBowler = (bVal == '0' || bVal.trim().isEmpty) ? pVal : bVal;
-    String displayPax = (pVal == '0' || pVal.trim().isEmpty) ? bVal : pVal;
+    String displayPax = pVal;
 
     return [
       booking['Name']?.toString() ?? '',
